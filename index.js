@@ -35,7 +35,7 @@ function fluentMutationObserver(element, options) {
       return !!document.querySelector(querySelector);
     };
 
-    return this.createObserver(tryResolve);
+    return this.createObserver(tryResolve, options);
   };
 
   this.assertChildDoesntExist = (querySelector) => {
