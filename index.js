@@ -1,8 +1,8 @@
-function fluentMutationObserver(element, options) {
+function fluentObserver(element, options) {
   const self =
-    this instanceof fluentMutationObserver
+    this instanceof fluentObserver
       ? this
-      : new fluentMutationObserver(element, options);
+      : new fluentObserver(element, options);
 
   options = options || { childNodes: true, childList: true };
   element =
@@ -54,7 +54,7 @@ function fluentMutationObserver(element, options) {
 
       return (
         hasAttribute &&
-        (!value || (value && self.element.attributes[name] === value))
+        (!value || (value && self.element.attributes[name]?.value === value))
       );
     };
 
