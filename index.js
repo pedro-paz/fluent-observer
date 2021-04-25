@@ -10,91 +10,73 @@ function fluentMutationObserver(element, options) {
 
   self.element = element || self.element;
 
-  this.assertChildExist = function (querySelector) {
-    const tryResolvePromise = (observer, resolve) => {
-      if (!!document.querySelector(querySelector)) {
+  this.createObserver = function (tryResolve, options) {
+    return new Promise((resolve) => {
+      const onSuccess = (observer, resolve) => {
         setTimeout(() => resolve(self));
         observer.disconnect();
-      }
-    };
+      };
 
-    return new Promise((resolve) => {
-      const observer = new MutationObserver(() =>
-        tryResolvePromise(observer, resolve)
-      );
-      tryResolvePromise(observer, resolve);
+      const observer = new MutationObserver(() => {
+        tryResolve() && onSuccess(observer, resolve);
+      });
+
+      if (tryResolve()) {
+        onSuccess(observer, resolve);
+        return;
+      }
+
       observer.observe(element, options);
     });
   };
 
-  this.assertChildDoesntExist = function (querySelector) {
-    const tryResolvePromise = (observer, resolve) => {
-      if (!document.querySelector(querySelector)) {
-        setTimeout(() => resolve(self));
-        observer.disconnect();
-      }
+  this.assertChildExist = (querySelector) => {
+    const tryResolve = () => {
+      return !!document.querySelector(querySelector);
     };
 
-    return new Promise((resolve) => {
-      const observer = new MutationObserver(() =>
-        tryResolvePromise(observer, resolve)
-      );
-      tryResolvePromise(observer, resolve);
-      observer.observe(element, options);
-    });
+    return this.createObserver(tryResolve);
   };
 
-  this.assertHasAttribute = function (name, value) {
-    const tryResolvePromise = (observer, resolve) => {
+  this.assertChildDoesntExist = (querySelector) => {
+    const tryResolve = () => {
+      return !document.querySelector(querySelector);
+    };
+
+    return this.createObserver(tryResolve, options);
+  };
+
+  this.assertHasAttribute = (name, value) => {
+    const tryResolve = () => {
       const hasAttribute =
         Array.from(self.element.attributes).filter((attr) => attr.name === name)
           .length != 0;
 
-      if (
+      return (
         hasAttribute &&
         (!value || (value && self.element.attributes[name] === value))
-      ) {
-        setTimeout(() => resolve(self));
-        observer.disconnect();
-      }
+      );
     };
 
-    return new Promise((resolve) => {
-      const observer = new MutationObserver(() =>
-        tryResolvePromise(observer, resolve)
-      );
-      tryResolvePromise(observer, resolve);
-      observer.observe(element, {
-        ...options,
-        attributes: true,
-        attributesOldValue: true,
-      });
+    return this.createObserver(tryResolve, {
+      ...options,
+      attributes: true,
+      attributesOldValue: true,
     });
   };
 
-  this.assertHasClass = function (name) {
-    const tryResolvePromise = (observer, resolve) => {
-      const hasAttributes =
-        Array.from(element.querySelector("#nav-access").attributes).filter(
-          (attr) => attr.name === attribute
-        ).length != 0;
-
-      if (hasAttributes) {
-        setTimeout(() => resolve(self));
-        observer.disconnect();
-      }
+  this.assertHasClass = (name) => {
+    const tryResolve = () => {
+      return (
+        Array.from(self.classList).filter((className) => className === name)
+          .length != 0
+      );
     };
 
-    return new Promise((resolve) => {
-      const observer = new MutationObserver(() =>
-        tryResolvePromise(observer, resolve)
-      );
-      tryResolvePromise(observer, resolve);
-      observer.observe(element, {
-        ...options,
-        attributes: true,
-        attributesOldValue: true,
-      });
+    return this.createObserver(tryResolve, {
+      ...options,
+      attributes: true,
+      attributesOldValue: true,
     });
   };
 
