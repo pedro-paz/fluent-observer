@@ -1,35 +1,43 @@
+function Queue() {
+  this.promise = () => {
+    return this.p;
+  };
+
+  this.add = (fn, ...args) => {
+    this.p = this.p.then(() => {
+      return fn.call(...args);
+    });
+  };
+
+  let oldP = this.p;
+  this.p = Promise.resolve();
+  return oldP;
+}
+
 function fluentObserver(element, options) {
-  const self =
-    this instanceof fluentObserver
-      ? this
-      : new fluentObserver(element, options);
-
-  options = options || { childNodes: true, childList: true };
-  options.timeout = isNaN(options.timeout) ? 1000 : options.timeout;
-
-  element =
-    typeof element === "string" ? document.querySelector(element) : element;
-
-  self.element = element || self.element;
+  this.queue = new Queue();
 
   const createObserver = (tryResolve, options) => {
-    return new Promise((resolve) => {
-      const onSuccess = (observer, resolve) => {
-        setTimeout(() => resolve(self));
-        observer.disconnect();
-      };
+    this.queue.add(() => {
+      return new Promise((resolve) => {
+        const onSuccess = (observer, resolve) => {
+          setTimeout(() => resolve(self));
+          observer.disconnect();
+        };
 
-      const observer = new MutationObserver(() => {
-        tryResolve() && onSuccess(observer, resolve);
+        const observer = new MutationObserver(() => {
+          tryResolve() && onSuccess(observer, resolve);
+        });
+
+        if (tryResolve()) {
+          onSuccess(observer, resolve);
+          return;
+        }
+
+        observer.observe(element, options);
       });
-
-      if (tryResolve()) {
-        onSuccess(observer, resolve);
-        return;
-      }
-
-      observer.observe(element, options);
     });
+    return this;
   };
 
   const checkClass = (clsName) => {
@@ -53,7 +61,13 @@ function fluentObserver(element, options) {
       return !!document.querySelector(querySelector);
     };
 
-    return createObserver(tryResolve, options);
+    return createObserver(tryResolve, {
+      ...options,
+      childNodes: true,
+      childList: true,
+      attributes: true,
+      attributesOldValue: true,
+    });
   };
 
   this.notHasChild = (querySelector) => {
@@ -110,6 +124,30 @@ function fluentObserver(element, options) {
       attributesOldValue: true,
     });
   };
+
+  this.thenExecute = (func) => {
+    this.queue.add(
+      () =>
+        new Promise((resolve) => {
+          func();
+          resolve(self);
+        })
+    );
+    return this;
+  };
+
+  const self =
+    this instanceof fluentObserver
+      ? this
+      : new fluentObserver(element, options);
+
+  options = options || { childNodes: true, childList: true };
+  options.timeout = isNaN(options.timeout) ? 1000 : options.timeout;
+
+  element =
+    typeof element === "string" ? document.querySelector(element) : element;
+
+  self.element = element || self.element;
 
   return self;
 }
