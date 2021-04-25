@@ -68,8 +68,9 @@ function fluentObserver(element, options) {
   this.assertHasClass = (name) => {
     const tryResolve = () => {
       return (
-        Array.from(self.classList).filter((className) => className === name)
-          .length != 0
+        Array.from(self.element.classList).filter(
+          (className) => className === name
+        ).length != 0
       );
     };
 
