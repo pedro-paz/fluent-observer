@@ -46,6 +46,34 @@ function fluentMutationObserver(element, options) {
 
   this.assertHasAttribute = function (name, value) {
     const tryResolvePromise = (observer, resolve) => {
+      const hasAttribute =
+        Array.from(self.element.attributes).filter((attr) => attr.name === name)
+          .length != 0;
+
+      if (
+        hasAttribute &&
+        (!value || (value && self.element.attributes[name] === value))
+      ) {
+        setTimeout(() => resolve(self));
+        observer.disconnect();
+      }
+    };
+
+    return new Promise((resolve) => {
+      const observer = new MutationObserver(() =>
+        tryResolvePromise(observer, resolve)
+      );
+      tryResolvePromise(observer, resolve);
+      observer.observe(element, {
+        ...options,
+        attributes: true,
+        attributesOldValue: true,
+      });
+    });
+  };
+
+  this.assertHasClass = function (name) {
+    const tryResolvePromise = (observer, resolve) => {
       const hasAttributes =
         Array.from(element.querySelector("#nav-access").attributes).filter(
           (attr) => attr.name === attribute
