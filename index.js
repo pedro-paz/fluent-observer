@@ -5,12 +5,14 @@ function fluentObserver(element, options) {
       : new fluentObserver(element, options);
 
   options = options || { childNodes: true, childList: true };
+  options.timeout = isNaN(options.timeout) ? 1000 : options.timeout;
+
   element =
     typeof element === "string" ? document.querySelector(element) : element;
 
   self.element = element || self.element;
 
-  this.createObserver = function (tryResolve, options) {
+  const createObserver = (tryResolve, options) => {
     return new Promise((resolve) => {
       const onSuccess = (observer, resolve) => {
         setTimeout(() => resolve(self));
@@ -30,49 +32,77 @@ function fluentObserver(element, options) {
     });
   };
 
-  this.assertChildExist = (querySelector) => {
+  const checkClass = (clsName) => {
+    return (
+      Array.from(self.element.classList).filter(
+        (className) => className === clsName
+      ).length != 0
+    );
+  };
+
+  const checkAttribute = (attrName) => {
+    return (
+      Array.from(self.element.attributes).filter(
+        (attr) => attr.name === attrName
+      ).length != 0
+    );
+  };
+
+  this.hasChild = (querySelector) => {
     const tryResolve = () => {
       return !!document.querySelector(querySelector);
     };
 
-    return this.createObserver(tryResolve, options);
+    return createObserver(tryResolve, options);
   };
 
-  this.assertChildDoesntExist = (querySelector) => {
+  this.notHasChild = (querySelector) => {
     const tryResolve = () => {
       return !document.querySelector(querySelector);
     };
 
-    return this.createObserver(tryResolve, options);
+    return createObserver(tryResolve, options);
   };
 
-  this.assertHasAttribute = (name, value) => {
+  this.hasAttribute = (name, value) => {
     const tryResolve = () => {
-      const hasAttribute =
-        Array.from(self.element.attributes).filter((attr) => attr.name === name)
-          .length != 0;
-
       return (
-        hasAttribute &&
+        checkAttribute(name) &&
         (!value || (value && self.element.attributes[name]?.value === value))
       );
     };
 
-    return this.createObserver(tryResolve, {
+    return createObserver(tryResolve, {
       ...options,
       attributes: true,
       attributesOldValue: true,
     });
   };
 
-  this.assertHasClass = (name) => {
+  this.notHasAttribute = (name) => {
     const tryResolve = () => {
-      return (
-        Array.from(self.element.classList).filter(
-          (className) => className === name
-        ).length != 0
-      );
+      return !checkAttribute(name);
     };
+
+    return createObserver(tryResolve, {
+      ...options,
+      attributes: true,
+      attributesOldValue: true,
+    });
+  };
+
+  this.hasClass = (name) => {
+    const tryResolve = () => checkClass(name);
+
+    return createObserver(tryResolve, {
+      ...options,
+      attributes: true,
+      attributesOldValue: true,
+    });
+  };
+
+  this.notHasClass = (name) => {
+    const tryResolve = () => !checkClass(name);
 
     return this.createObserver(tryResolve, {
       ...options,
